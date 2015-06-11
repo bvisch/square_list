@@ -1,4 +1,3 @@
-// your code here...
 #if !defined(square_list_hpp)
 #define square_list_hpp
 
@@ -7,7 +6,7 @@ using namespace std;
 
 template <typename T>
 class square_list {
-public: 
+public:
 	using size_type = std::size_t;
 	using value_type = T;
 	using reference = T&;
@@ -15,127 +14,92 @@ public:
 	using pointer = T*;
 	using const_pointer = T const*;
 	using iterator = typename list<T>::iterator;
-	using head_iterator = typename list<iterator>::iterator;
 	using const_iterator = typename list<T>::const_iterator;
-	using const_head_iterator = typename list<iterator>::const_iterator;
 	using difference_type = std::ptrdiff_t;
 	using reverse_iterator = typename list<T>::reverse_iterator;
 	using const_reverse_iterator = typename list<T>::const_reverse_iterator;
 
 private:
+	using head_iterator = typename list<iterator>::iterator;
+	using const_head_iterator = typename list<iterator>::const_iterator;
+
+	class search_result {
+	public:
+		head_iterator head_pos;
+		iterator pos;
+		bool found;
+
+		search_result(head_iterator hp, iterator p, bool f) : head_pos(hp), pos(p), found(f) {}
+	};
+
 	list<iterator> _head_list;
 	list<T> _body_list;
 	size_type side_length;
-	size_type size;
-	size_type head_size;
-
-	void resquare(head_iterator start);
-	iterator search(value_type element);
+	search_result find(value_type element);
+	bool validateSort();
 
 public:
-	square_list() : side_length(0), size(0), head_size(0) {}
+	square_list() : side_length(0) {}
 	//~square_list();
-	iterator		binsert(iterator position, value_type element);
-	head_iterator	hinsert(head_iterator position, iterator element);
-	iterator		insert(value_type element);
-	iterator		begin() { return _body_list.begin(); }
-	iterator		end() { return _body_list.end(); }
+	size_type			size() { return _body_list.size(); }
+	iterator			insert(value_type element);
+	const_iterator		begin() { return _body_list.begin(); }
+	const_iterator		end() { return _body_list.end(); }
 };
 
-//template <typename T>
-//square_list<T>::square_list() {
-//	_head_list = new list<typename list<T>::iterator>;
-//	_body_list = new list<T>;
-//}
-//
-//template <typename T>
-//square_list<T>::~square_list() {
-//	delete _head_list;
-//	delete _body_list;
-//}
-
 template <typename T>
-void square_list<T>::resquare(head_iterator start) {
-	if (head_size <= side_length) {
-		for (square_list::head_iterator it_head = start; it_head != _head_list.end(); ++it_head)
-			*it_head--;
+bool square_list<T>::validateSort() {
+	T temp = _body_list.front();
+	for (auto it = ++begin(); it != end(); ++it) {
+		if (*it < temp) { return false; }
+		temp = *it;
 	}
-	else if (head_size > side_length) {
-		_head_list.clear();
-		unsigned count = 0;
-		for (square_list::iterator it_body = _body_list.begin(); it_body != _body_list.end(); ++it_body) {
-			if (count % side_length == 0) {
-				_head_list.push_back(it_body);
-			}
-			++count;
-		}
-	}
-}
-
-//template <typename T>
-//typename square_list<T>::iterator square_list<T>::search(value_type element) {
-//	for (square_list::head_iterator it_head = _head_list.begin(); it_head != _head_list.end(); ++it_head) {
-//		if (**it_head >= element) {
-//			for (square_list::reverse_iterator it_body = square_list::reverse_iterator(*it_head); it_body != _body_list.rend(); ++it_body) {
-//				if (*it_body < element) {
-//					return it_body--.base();
-//				}
-//			}
-//		}
-//	}
-//}
-
-template <typename T>
-typename square_list<T>::iterator square_list<T>::binsert(typename square_list<T>::iterator position, typename square_list<T>::value_type element) {
-	++size;
-	if (size > pow(head_size, 2)) {
-		++side_length;
-	}
-	return _body_list.insert(position, element);
+	return true;
 }
 
 template <typename T>
-typename square_list<T>::head_iterator square_list<T>::hinsert(typename square_list<T>::head_iterator position, typename square_list<T>::iterator element) {
-	++head_size;
-	return _head_list.insert(position, element);
+typename square_list<T>::search_result square_list<T>::find(typename square_list<T>::value_type element) {
+	if (size() == 0) { return search_result(_head_list.begin(), _body_list.begin(), false); }
+	else if (_body_list.front() >= element) { return search_result(_head_list.begin(), _body_list.begin(), _body_list.front() == element); }
+	else if (_body_list.back() == element) { return search_result(_head_list.end(), --_body_list.end(), true); }
+	else if (_body_list.back() < element) { return search_result(_head_list.end(), _body_list.end(), false); }
+
+	square_list::head_iterator it_head = _head_list.begin();
+	while (it_head != _head_list.end() && **it_head < element) { ++it_head; }
+	
+	square_list::iterator it_body = *--it_head;
+	while (*it_body <= element) { ++it_body; }
+
+	return search_result(++it_head, it_body, *it_body == element);
 }
 
 template <typename T>
 typename square_list<T>::iterator square_list<T>::insert(typename square_list<T>::value_type element) {
-	if (_body_list.begin() == _body_list.end()) {
-		binsert(_body_list.begin(), element);
-		hinsert(_head_list.begin(), _body_list.begin());
+	if (size() == 0) { 
+		_body_list.push_back(element);
+		_head_list.push_back(_body_list.begin());
+		++side_length;
 		return _body_list.begin();
 	}
-	//binsert(search(element), element);
 
+	search_result res = find(element);
+	_body_list.insert(res.pos, element);
 
-	for (square_list::head_iterator it_head = _head_list.begin(); it_head != _head_list.end(); ++it_head) {
-		if (**it_head > element) {
-			for (square_list::reverse_iterator it_body = square_list::reverse_iterator(*it_head); it_body != _body_list.rend(); ++it_body) {
-				auto asdf = prev(_body_list.rend());
-				if (*it_body < element) {
-					binsert(--it_body.base(), element);
-					resquare(it_head);
-					return it_body.base();
-				}
-				else if (it_body == prev(_body_list.rend())) {
-					binsert(_body_list.begin(), element);
-					resquare(it_head);
-					return _body_list.begin();
-				}
-			}
-		}
-		else if (it_head == prev(_head_list.end())) {
-			for (square_list::iterator it_body = *it_head; it_body != _body_list.end(); ++it_body) {
-				if (*it_body > element) {
-					binsert(--it_body, element);
-					resquare(it_head);
-					return it_body;
-				}
-			}
-		}
+	while (res.head_pos != _head_list.end())
+		--(*res.head_pos++);
+
+	if (size() > pow(side_length, 2)) {
+		++side_length;
+		head_iterator it_head = _head_list.begin();
+		for (unsigned i = 0; i < side_length - 1; ++i)
+			advance(*it_head++, i);
 	}
+
+	else if (size() % side_length == 1) {
+		_head_list.push_back(--_body_list.end());
+	}
+
+	return res.pos;
 }
 
 #endif
